@@ -1,4 +1,5 @@
 
+
 package com.example.ocm.security;
 
 import org.springframework.context.annotation.Bean;
@@ -29,13 +30,23 @@ public class SecurityConfig {
 
         http
             .csrf(csrf -> csrf.disable())
-            .cors(Customizer.withDefaults()) // 🔥 THIS IS THE FIX
+
+            // ✅ ENABLE CORS IN SECURITY
+            .cors(Customizer.withDefaults())
+
             .authorizeHttpRequests(auth -> auth
+                // ✅ Allow preflight
+                .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+
+                // ✅ Public APIs
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/courses/**").permitAll()
                 .requestMatchers("/students/**").permitAll()
+
                 .anyRequest().authenticated()
             )
+
+            // ✅ JWT filter
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
