@@ -18,38 +18,45 @@ public class JwtFilter extends OncePerRequestFilter {
     public JwtFilter(JwtUtil jwtUtil) {
         this.jwtUtil = jwtUtil;
     }
+@Override
+protected void doFilterInternal(HttpServletRequest request,
+                                HttpServletResponse response,
+                                FilterChain filterChain)
+        throws ServletException, IOException {
 
-    @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain)
-            throws ServletException, IOException {
-
-        String path = request.getRequestURI();
-
-        // Allow auth endpoints
-        if (path.startsWith("/api/auth")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        // Check Authorization header
-        String authHeader = request.getHeader("Authorization");
-
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-
-            if (jwtUtil.validateToken(token)) {
-                var auth = new org.springframework.security.authentication
-                        .UsernamePasswordAuthenticationToken(
-                                jwtUtil.extractUsername(token),
-                                null,
-                                java.util.List.of()
-                        );
-                SecurityContextHolder.getContext().setAuthentication(auth);
-            }
-        }
-
+    // ✅ Skip OPTIONS
+    if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
         filterChain.doFilter(request, response);
+        return;
     }
+
+    String path = request.getRequestURI();
+
+    if (path.startsWith("/api/auth")) {
+        filterChain.doFilter(request, response);
+        return;
+    }
+
+    String authHeader = request.getHeader("Authorization");
+
+    if (authHeader != null && authHeader.startsWith("Bearer ")) {
+        String token = authHeader.substring(7);
+
+        if (jwtUtil.validateToken(token)) {
+            var auth = new org.springframework.security.authentication
+                    .UsernamePasswordAuthenticationToken(
+                            jwtUtil.extractUsername(token),
+                            null,
+                            java.util.List.of()
+                    );
+            org.springframework.security.core.context.SecurityContextHolder
+                    .getContext()
+                    .setAuthentication(auth);
+        }
+    }
+
+    filterChain.doFilter(request, response);
+}
+
+  
 }
